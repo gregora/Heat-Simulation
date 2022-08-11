@@ -158,13 +158,15 @@ int main(){
 		//p[i].conductivity = 1;
 
 		//HOMOGENIUS HEAT DISTRIBUTION
-		p[i].temperature = 250;
-		p[i].conductivity = 1;
+		//p[i].temperature = 250;
+		//p[i].conductivity = 1;
 
+		p[i].temperature = 100;
+		p[i].conductivity = 1;
 
 	}
 
-	for(int frame = 0; frame < 50000; frame++){
+	for(int frame = 0; frame < 15000; frame++){
 		physics(p, WIDTH, HEIGHT, DELTA, DISTANCE);
 
 		printf("Frame %d at time %f s\n", frame, frame * DELTA);
@@ -173,7 +175,12 @@ int main(){
 
 			float temp = p[i / 4].temperature;
 
-			if(i < WIDTH * 10 * 4){
+			int ind = i / 4;
+
+			int x = ind / WIDTH - WIDTH / 2;
+			int y = ind % WIDTH - HEIGHT / 2;
+
+			if(x*x + y*y < 30){
 				p[i / 4].temperature = 1000;
 			}
 

@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+frames/*.png
+frames/*.mp4
