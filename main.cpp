@@ -43,7 +43,7 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 		for(uint j = 0; j < height; j++){
 			uint index = toCoord(i, j, width, height);
 
-			Point current = points[index];
+			Point& current = points[index];
 
 			//get needed info
 			float temp = current.temperature;
@@ -54,14 +54,14 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 			if(i == 0){
 				templeft = temp;
 			}else{
-				Point pointleft = points[toCoord(i - 1, j, width, height)];
+				Point& pointleft = points[toCoord(i - 1, j, width, height)];
 				templeft = pointleft.temperature;
 			}
 
 			if(i == width - 1){
 				tempright = temp;
 			}else{
-				Point pointright = points[toCoord(i + 1, j, width, height)];
+				Point& pointright = points[toCoord(i + 1, j, width, height)];
 				tempright = pointright.temperature;
 			}
 
@@ -69,7 +69,7 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 			if(j == 0){
 				tempup = temp;
 			}else{
-				Point pointup = points[toCoord(i, j - 1, width, height)];
+				Point& pointup = points[toCoord(i, j - 1, width, height)];
 				tempup = pointup.temperature;
 			}
 
@@ -77,7 +77,7 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 			if(j == height - 1){
 				tempdown = temp;
 			}else{
-				Point pointdown = points[toCoord(i, j + 1, width, height)];
+				Point& pointdown = points[toCoord(i, j + 1, width, height)];
 				tempdown = pointdown.temperature;
 			}
 
@@ -151,7 +151,7 @@ int main(uint arg_num, char ** args){
 
 	}
 
-	for(int frame = 0; frame < 15000; frame++){
+	for(int frame = 0; frame < 30000; frame++){
 		physics(p, WIDTH, HEIGHT, DELTA, DISTANCE);
 
 		printf("Frame %d at time %f s\n", frame, frame * DELTA);
@@ -175,7 +175,7 @@ int main(uint arg_num, char ** args){
 
 			pixels[i+3] = 255;
 		}
-		
+
 		texture.update(pixels);
 		window.draw(sprite);
 
@@ -188,11 +188,14 @@ int main(uint arg_num, char ** args){
 
 	int framerate = 1 / DELTA;
 
-	printf("Rendering ...\n");
-	system(std::string(("ffmpeg -y -framerate ") + std::to_string(framerate) + std::string(" -i frames/frame_%d.png frames/output.mp4 > /dev/null")).c_str());
-	printf("Deleting pngs ...\n");
-	system("rm -r frames/*.png");
-	printf("Done.\n");
+	if(render){
+		printf("Rendering ...\n");
+		system(std::string(("ffmpeg -y -framerate ") + std::to_string(framerate) + std::string(" -i frames/frame_%d.png frames/output.mp4 > /dev/null")).c_str());
+		printf("Deleting pngs ...\n");
+		system("rm -r frames/*.png");
+		printf("Done.\n");
+	}
+
 
 	return 0;
 }
