@@ -1,7 +1,7 @@
 #include <SFML/Graphics.hpp>
 #include "stdio.h"
+#include <string.h>
 #include <string>
-#include "libraries/lodepng/lodepng.h"
 #include "math.h"
 
 #define uint unsigned int
@@ -49,62 +49,40 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 			float temp = current.temperature;
 			float cond = current.conductivity;
 			float tempup, tempdown, tempright, templeft;
-			float condup, conddown, condright, condleft;
 
 			//check for boundary cases
 			if(i == 0){
 				templeft = temp;
-				condleft = cond;
 			}else{
 				Point pointleft = points[toCoord(i - 1, j, width, height)];
-
 				templeft = pointleft.temperature;
-				condleft = pointleft.conductivity;
 			}
 
 			if(i == width - 1){
 				tempright = temp;
-				condright = cond;
 			}else{
 				Point pointright = points[toCoord(i + 1, j, width, height)];
-
 				tempright = pointright.temperature;
-				condright = pointright.conductivity;
 			}
 
 
 			if(j == 0){
 				tempup = temp;
-				condup = cond;
 			}else{
 				Point pointup = points[toCoord(i, j - 1, width, height)];
-
 				tempup = pointup.temperature;
-				condup = pointup.conductivity;
 			}
 
 
 			if(j == height - 1){
 				tempdown = temp;
-				conddown = cond;
 			}else{
 				Point pointdown = points[toCoord(i, j + 1, width, height)];
-
 				tempdown = pointdown.temperature;
-				conddown = pointdown.conductivity;
 			}
 
-			//printf("%f %f %f %f\n", condup, conddown, condleft, condright);
-
 			//calculate energy flux
-			float fluxup    = (tempup - temp)*(condup + cond)/2 * delta / distance;
-			float fluxdown  = (tempdown - temp)*(conddown + cond)/2 * delta / distance;
-			float fluxleft  = (templeft - temp)*(condleft + cond)/2 * delta / distance;
-			float fluxright = (tempright - temp)*(condright + cond)/2 * delta / distance;
-
-			float tempchange = fluxup + fluxdown + fluxleft + fluxright;
-
-			//printf("Delta t (%f)\n", tempchange);
+			float tempchange = (tempup + tempdown + templeft + tempright - 4*temp) * cond * delta / distance;
 
 			//apply to the new value
 			points_new[index].temperature = temp + tempchange;
@@ -122,7 +100,7 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 
 }
 
-int main(){
+int main(uint arg_num, char ** args){
 
 	//declare constants
 	int WIDTH = 100;
@@ -131,9 +109,16 @@ int main(){
 	float DELTA = 0.001;
 	float DISTANCE = 0.01;
 
+	bool render = false;
+
+	for(uint i = 0; i < arg_num; i++){
+		if(strcmp(args[i], "-render") == 0){
+			render = true;
+		}
+	}
+
 	//create texture and sprite for rendering
 	sf::Uint8* pixels = new sf::Uint8[WIDTH*HEIGHT*4];
-	unsigned char* colors = new unsigned char[WIDTH * HEIGHT * 3];
 
 	sf::Texture texture;
 	texture.create(WIDTH, HEIGHT);
@@ -189,20 +174,16 @@ int main(){
 			pixels[i+2] = 255 - temp * 255 / 1000;
 
 			pixels[i+3] = 255;
-
-			colors[i*3/4] = (int) pixels[i];
-			colors[i*3/4 + 1] = (int) pixels[i + 1];
-			colors[i*3/4 + 2] = (int) pixels[i + 2];
 		}
-
-		lodepng::encode(std::string("frames/frame_") + std::to_string(frame) + std::string(".png"), colors, WIDTH, HEIGHT, LCT_RGB);
-
-		window.clear(sf::Color::Black);
-
+		
 		texture.update(pixels);
 		window.draw(sprite);
 
 		window.display();
+
+		if(render){
+			window.capture().saveToFile("frames/frame_" + std::to_string(frame) + ".png");
+		}
 	}
 
 	int framerate = 1 / DELTA;
