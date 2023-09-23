@@ -138,8 +138,8 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 int main(int arg_num, char ** args){
 
 	//declare constants
-	int WIDTH = 600;
-	int HEIGHT = 600;
+	int WIDTH = 200;
+	int HEIGHT = 200;
 
 	float DELTA = 0.001;
 	float DISTANCE = 0.01;
@@ -170,8 +170,8 @@ int main(int arg_num, char ** args){
 		//p[i].temperature = (i % WIDTH > WIDTH / 2)*1000;
 		//p[i].conductivity = (i / HEIGHT > HEIGHT / 2) * 2 + 0;
 
-		//p[i].temperature = (i % WIDTH > WIDTH / 2)*1000;
-		//p[i].conductivity = (i / HEIGHT > HEIGHT / 2) * 1.5 + 0.5;
+		p[i].temperature = (i % WIDTH > WIDTH / 2)*1000;
+		p[i].conductivity = (i / HEIGHT > HEIGHT / 2) * 1.5 + 0.5;
 
 		//TWO DISCRETE HEAT DISTRIBUTIONS WITH HOMOGENIUS CONDUCTIVITY
 		//p[i].temperature = (i % WIDTH)*(i / WIDTH) * 500 / (HEIGHT * WIDTH / 2);
@@ -181,12 +181,9 @@ int main(int arg_num, char ** args){
 		//p[i].temperature = 250;
 		//p[i].conductivity = 1;
 
-		p[i].temperature = 100;
-		p[i].conductivity = 1;
-
 	}
 
-	for(int frame = 0; frame < 1000; frame++){
+	for(int frame = 0; frame < 3000; frame++){
 		//time physics
 	    auto start = std::chrono::high_resolution_clock::now();
 		physics(p, WIDTH, HEIGHT, DELTA, DISTANCE, MAX_THREADS);
