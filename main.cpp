@@ -33,6 +33,56 @@ void printState(Point * points, uint width, uint height){
 
 }
 
+void physicsPoint(Point * points, Point * points_new, uint width, uint height, uint i, uint j, float delta, float distance){
+	uint index = toCoord(i, j, width, height);
+
+	Point& current = points[index];
+
+	//get needed info
+	float temp = current.temperature;
+	float cond = current.conductivity;
+	float tempup, tempdown, tempright, templeft;
+
+	//check for boundary cases
+	if(i == 0){
+		templeft = temp;
+	}else{
+		Point& pointleft = points[toCoord(i - 1, j, width, height)];
+		templeft = pointleft.temperature;
+	}
+
+	if(i == width - 1){
+		tempright = temp;
+	}else{
+		Point& pointright = points[toCoord(i + 1, j, width, height)];
+		tempright = pointright.temperature;
+	}
+
+
+	if(j == 0){
+		tempup = temp;
+	}else{
+		Point& pointup = points[toCoord(i, j - 1, width, height)];
+		tempup = pointup.temperature;
+	}
+
+
+	if(j == height - 1){
+		tempdown = temp;
+	}else{
+		Point& pointdown = points[toCoord(i, j + 1, width, height)];
+		tempdown = pointdown.temperature;
+	}
+
+	//calculate energy flux
+	float tempchange = (tempup + tempdown + templeft + tempright - 4*temp) * cond * delta / distance;
+
+	//apply to the new value
+	points_new[index].temperature = temp + tempchange;
+	points_new[index].conductivity = points[index].conductivity;
+
+}
+
 //blows up for delta == distance (distance has to be sufficiently large)
 void physics(Point * points, uint width, uint height, float delta, float distance){
 
@@ -41,52 +91,7 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 	//do the calculations
 	for(uint i = 0; i < width; i++){
 		for(uint j = 0; j < height; j++){
-			uint index = toCoord(i, j, width, height);
-
-			Point& current = points[index];
-
-			//get needed info
-			float temp = current.temperature;
-			float cond = current.conductivity;
-			float tempup, tempdown, tempright, templeft;
-
-			//check for boundary cases
-			if(i == 0){
-				templeft = temp;
-			}else{
-				Point& pointleft = points[toCoord(i - 1, j, width, height)];
-				templeft = pointleft.temperature;
-			}
-
-			if(i == width - 1){
-				tempright = temp;
-			}else{
-				Point& pointright = points[toCoord(i + 1, j, width, height)];
-				tempright = pointright.temperature;
-			}
-
-
-			if(j == 0){
-				tempup = temp;
-			}else{
-				Point& pointup = points[toCoord(i, j - 1, width, height)];
-				tempup = pointup.temperature;
-			}
-
-
-			if(j == height - 1){
-				tempdown = temp;
-			}else{
-				Point& pointdown = points[toCoord(i, j + 1, width, height)];
-				tempdown = pointdown.temperature;
-			}
-
-			//calculate energy flux
-			float tempchange = (tempup + tempdown + templeft + tempright - 4*temp) * cond * delta / distance;
-
-			//apply to the new value
-			points_new[index].temperature = temp + tempchange;
-			points_new[index].conductivity = points[index].conductivity;
+			physicsPoint(points, points_new, width, height, i, j, delta, distance);
 		}
 	}
 
