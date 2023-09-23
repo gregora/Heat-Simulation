@@ -3,10 +3,14 @@
 #include <string.h>
 #include <string>
 #include "math.h"
+#include <thread>
+#include <chrono>
 
 #define uint unsigned int
 
 using namespace std;
+
+const uint MAX_THREADS = 4;
 
 struct Point {
 	float temperature;
@@ -83,33 +87,59 @@ void physicsPoint(Point * points, Point * points_new, uint width, uint height, u
 
 }
 
-//blows up for delta == distance (distance has to be sufficiently large)
-void physics(Point * points, uint width, uint height, float delta, float distance){
-
-	Point points_new[width * height];
-
-	//do the calculations
-	for(uint i = 0; i < width; i++){
+void physicsSector(Point * points, Point * points_new, uint width, uint height, uint i_start, uint i_end, float delta, float distance){
+	
+	for(uint i = i_start; i < i_end; i++){
 		for(uint j = 0; j < height; j++){
 			physicsPoint(points, points_new, width, height, i, j, delta, distance);
 		}
 	}
 
-	//return new values back to the original array
-	for(uint i = 0; i < width; i++){
+}
+
+void copyPointsSector(Point * points, Point * points_new, uint width, uint height, uint i_start, uint i_end){
+	for(uint i = i_start; i < i_end; i++){
 		for(uint j = 0; j < height; j++){
 			points[toCoord(i, j, width, height)] = points_new[toCoord(i, j, width, height)];
 		}
 	}
+}
+
+//blows up for delta == distance (distance has to be sufficiently large)
+void physics(Point * points, uint width, uint height, float delta, float distance, int num_threads = 1){
+
+	Point points_new[width * height];
+
+	//calculations
+	std::thread* threads[num_threads];
+	for(uint i = 0; i < num_threads; i++){
+		threads[i] = new std::thread(physicsSector, points, &points_new[0], width, height, i * width / num_threads, (i + 1) * width / num_threads, delta, distance);
+	}
+
+	for(uint i = 0; i < num_threads; i++){
+		threads[i]->join();
+		delete threads[i];
+	}
+
+	//copying
+	for(uint i = 0; i < num_threads; i++){
+		threads[i] = new std::thread(copyPointsSector, points, &points_new[0], width, height, i * width / num_threads, (i + 1) * width / num_threads);
+	}
+
+	for(uint i = 0; i < num_threads; i++){
+		threads[i]->join();
+		delete threads[i];
+	}
+
 
 
 }
 
-int main(uint arg_num, char ** args){
+int main(int arg_num, char ** args){
 
 	//declare constants
-	int WIDTH = 100;
-	int HEIGHT = 100;
+	int WIDTH = 600;
+	int HEIGHT = 600;
 
 	float DELTA = 0.001;
 	float DISTANCE = 0.01;
@@ -156,12 +186,17 @@ int main(uint arg_num, char ** args){
 
 	}
 
-	for(int frame = 0; frame < 30000; frame++){
-		physics(p, WIDTH, HEIGHT, DELTA, DISTANCE);
+	for(int frame = 0; frame < 1000; frame++){
+		//time physics
+	    auto start = std::chrono::high_resolution_clock::now();
+		physics(p, WIDTH, HEIGHT, DELTA, DISTANCE, MAX_THREADS);
+		auto finish = std::chrono::high_resolution_clock::now();
+		std::chrono::duration<double> elapsed = finish - start;
 
-		printf("Frame %d at time %f s\n", frame, frame * DELTA);
+		printf("Frame %d at simulation time %f s\n", frame, frame * DELTA);
+		printf("Physics took %f s\n", elapsed.count());
 
-		for(register int i = 0; i < WIDTH*HEIGHT*4; i += 4) {
+		for(uint i = 0; i < WIDTH*HEIGHT*4; i += 4) {
 
 			float temp = p[i / 4].temperature;
 
