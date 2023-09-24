@@ -40,7 +40,8 @@ void printState(Point * points, uint width, uint height){
 void physicsPoint(Point * points, Point * points_new, uint width, uint height, uint i, uint j, float delta, float distance){
 	uint index = toCoord(i, j, width, height);
 
-	Point& current = points[index];
+	float t0 = points[index].temperature;
+	Point& current = points_new[index];
 
 	//get needed info
 	float temp = current.temperature;
@@ -51,14 +52,14 @@ void physicsPoint(Point * points, Point * points_new, uint width, uint height, u
 	if(i == 0){
 		templeft = temp;
 	}else{
-		Point& pointleft = points[toCoord(i - 1, j, width, height)];
+		Point& pointleft = points_new[toCoord(i - 1, j, width, height)];
 		templeft = pointleft.temperature;
 	}
 
 	if(i == width - 1){
 		tempright = temp;
 	}else{
-		Point& pointright = points[toCoord(i + 1, j, width, height)];
+		Point& pointright = points_new[toCoord(i + 1, j, width, height)];
 		tempright = pointright.temperature;
 	}
 
@@ -66,7 +67,7 @@ void physicsPoint(Point * points, Point * points_new, uint width, uint height, u
 	if(j == 0){
 		tempup = temp;
 	}else{
-		Point& pointup = points[toCoord(i, j - 1, width, height)];
+		Point& pointup = points_new[toCoord(i, j - 1, width, height)];
 		tempup = pointup.temperature;
 	}
 
@@ -74,15 +75,19 @@ void physicsPoint(Point * points, Point * points_new, uint width, uint height, u
 	if(j == height - 1){
 		tempdown = temp;
 	}else{
-		Point& pointdown = points[toCoord(i, j + 1, width, height)];
+		Point& pointdown = points_new[toCoord(i, j + 1, width, height)];
 		tempdown = pointdown.temperature;
 	}
 
 	//calculate energy flux
 	float tempchange = (tempup + tempdown + templeft + tempright - 4*temp) * cond * delta / distance;
 
+	float a = cond * delta / distance;
+
+	temp = (t0 + a*(tempup + tempdown + templeft + tempright)) / ( 1 + 4*a);
+
 	//apply to the new value
-	points_new[index].temperature = temp + tempchange;
+	points_new[index].temperature = temp;
 	points_new[index].conductivity = points[index].conductivity;
 
 }
@@ -110,15 +115,26 @@ void physics(Point * points, uint width, uint height, float delta, float distanc
 
 	Point points_new[width * height];
 
-	//calculations
 	std::thread* threads[num_threads];
-	for(uint i = 0; i < num_threads; i++){
-		threads[i] = new std::thread(physicsSector, points, &points_new[0], width, height, i * width / num_threads, (i + 1) * width / num_threads, delta, distance);
+
+	
+	for(uint i = 0; i < width; i++){
+		for(uint j = 0; j < height; j++){
+			points_new[toCoord(i, j, width, height)] = points[toCoord(i, j, width, height)];
+		}
 	}
 
-	for(uint i = 0; i < num_threads; i++){
-		threads[i]->join();
-		delete threads[i];
+
+	//Gauss-Seidel method
+	for(uint k = 0; k < 20; k++){
+		for(uint i = 0; i < num_threads; i++){
+			threads[i] = new std::thread(physicsSector, points, &points_new[0], width, height, i * width / num_threads, (i + 1) * width / num_threads, delta, distance);
+		}
+
+		for(uint i = 0; i < num_threads; i++){
+			threads[i]->join();
+			delete threads[i];
+		}
 	}
 
 	//copying
@@ -141,7 +157,7 @@ int main(int arg_num, char ** args){
 	int WIDTH = 200;
 	int HEIGHT = 200;
 
-	float DELTA = 0.001;
+	float DELTA = 0.1;
 	float DISTANCE = 0.01;
 
 	bool render = false;
@@ -171,7 +187,7 @@ int main(int arg_num, char ** args){
 		//p[i].conductivity = (i / HEIGHT > HEIGHT / 2) * 2 + 0;
 
 		p[i].temperature = (i % WIDTH > WIDTH / 2)*1000;
-		p[i].conductivity = (i / HEIGHT > HEIGHT / 2) * 1.5 + 0.5;
+		p[i].conductivity = (i / HEIGHT > HEIGHT / 2) * 5 + 0.5;
 
 		//TWO DISCRETE HEAT DISTRIBUTIONS WITH HOMOGENIUS CONDUCTIVITY
 		//p[i].temperature = (i % WIDTH)*(i / WIDTH) * 500 / (HEIGHT * WIDTH / 2);
@@ -203,7 +219,7 @@ int main(int arg_num, char ** args){
 			int y = ind % WIDTH - HEIGHT / 2;
 
 			if(x*x + y*y < 30){
-				p[i / 4].temperature = 1000;
+				//p[i / 4].temperature = 1000;
 			}
 
 			pixels[i] = temp * 255 / 1000;
